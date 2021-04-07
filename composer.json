@@ -1,0 +1,15 @@
+{
+    "name": "bdogan/ubl-tr-generator",
+    "autoload": {
+        "psr-4": {
+          "UblTRGenerator\\": "src/UblTRGenerator/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Burak Doğan",
+            "email": "bdogan85@gmail.com"
+        }
+    ],
+    "require": {}
+}
