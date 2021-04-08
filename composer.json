@@ -1,8 +1,9 @@
 {
     "name": "bdogan/ubl-tr-generator",
+    "description": "UBL-TR v1.2 XML Generator",
     "autoload": {
         "psr-4": {
-          "UblTRGenerator\\": "src/UblTRGenerator/"
+          "UblTr\\": "src/"
         }
     },
     "authors": [
@@ -11,5 +12,7 @@
             "email": "bdogan85@gmail.com"
         }
     ],
-    "require": {}
+    "require": {
+      "ext-simplexml": "*"
+    }
 }
