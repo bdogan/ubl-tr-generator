@@ -6,6 +6,7 @@ namespace UblTr;
  * Class Node
  * @package UblTr
  *
+ * @property string $id
  * @property Ns $ns
  * @property string $tag
  * @property mixed|Node[] $body
@@ -21,6 +22,7 @@ class Node
      * @var array|null
      */
     protected $content = array(
+        'id' => null,
         'ns' => null,
         'tag' => null,
         'body' => null,
@@ -47,8 +49,7 @@ class Node
      */
     public function __get($name)
     {
-        if (array_key_exists($name, $this->content)) return $this->content[$name];
-        return null;
+        return $this->get($name);
     }
 
     /**
@@ -59,8 +60,32 @@ class Node
      */
     public function __set($name, $value)
     {
-        if (array_key_exists($name, $this->content)) {
-            $this->content[$name] = $value;
+        switch (true) {
+            case (array_key_exists($name, $this->content)): return $this->content[$name] = $value;
+            case $this->body instanceof NodeCollection && $this->body->exists($name): return $this->body->{$name} = $value;
+        }
+    }
+
+    public function get($name) {
+        switch (true) {
+            case (array_key_exists($name, $this->content)): return $this->content[$name];
+            case $this->body instanceof NodeCollection && $this->body->exists($name): return $this->body->get($name)->body;
+            default: return null;
+        }
+    }
+
+    public function add($node)
+    {
+        if (!$this->body instanceof NodeCollection) $this->content['body'] = NodeCollection::create();
+        $this->content['body']->add($node);
+    }
+
+    public function exists($name)
+    {
+        switch (true) {
+            case (array_key_exists($name, $this->content)):
+            case $this->body instanceof NodeCollection && $this->body->exists($name): return true;
+            default: return false;
         }
     }
 
@@ -70,7 +95,7 @@ class Node
      */
     public function __isset($name)
     {
-        return array_key_exists($name, $this->content);
+        return $this->exists($name);
     }
 
     /**
@@ -104,7 +129,7 @@ class Node
      */
     public function withRequired($state)
     {
-        $this->require = $state;
+        $this->content['require'] = $state;
         return $this;
     }
 
@@ -116,7 +141,7 @@ class Node
      */
     public function withNs($ns)
     {
-        $this->ns = $ns;
+        $this->content['ns'] = $ns;
         return $this;
     }
 
@@ -128,7 +153,7 @@ class Node
      */
     public function withBody($body)
     {
-        $this->body = $body;
+        $this->content['body'] = $body;
         return $this;
     }
 
@@ -156,7 +181,19 @@ class Node
      */
     public function withAttr($name, $value)
     {
-        $this->attributes[$name] = $value;
+        $this->content['attributes'][$name] = $value;
+        return $this;
+    }
+
+    /**
+     * Set node id for external access
+     *
+     * @param $id
+     * @return $this
+     */
+    public function withId($id)
+    {
+        $this->content['id'] = $id;
         return $this;
     }
 

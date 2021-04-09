@@ -131,7 +131,9 @@ class Generator
         if (!is_null($childXml)) {
             $childXml = !is_array($childXml) ? array($childXml) : $childXml;
             foreach ($node->attributes as $key => $value) {
-                $childXml->attributes($key, $value);
+                foreach ($childXml as $_childXml) {
+                    $_childXml->addAttribute($key, $value);
+                }
             }
         }
     }

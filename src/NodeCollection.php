@@ -37,21 +37,25 @@ class NodeCollection implements \Iterator
      */
     public function add($node)
     {
-        $this->nodes[$node->tag] = $node;
+        if (!!$node->id) {
+            $this->nodes[$node->id] = $node;
+        } else {
+            $this->nodes[] = $node;
+        }
     }
 
     /**
-     * @param $tag
+     * @param $id
      * @return Node
      */
-    public function get($tag)
+    public function get($id)
     {
-        return $this->exists($tag) ? $this->nodes[$tag] : null;
+        return $this->exists($id) ? $this->nodes[$id] : null;
     }
 
-    public function exists($tag)
+    public function exists($id)
     {
-        return array_key_exists($tag, $this->nodes);
+        return array_key_exists($id, $this->nodes);
     }
 
     public function current()
@@ -113,8 +117,14 @@ class NodeCollection implements \Iterator
 
     public function toArray()
     {
-        return array_map(function ($node) {
-            return $this->bodyToArray($node->body, $node);
-        }, $this->nodes);
+        $results = array();
+        foreach ($this->nodes as $node) {
+            if (!!$node->id) {
+                $results[$node->id] = $this->bodyToArray($node->body, $node);
+            } else if(!!$node->tag && !isset($results[$node->tag])) {
+                $results[$node->tag] = $this->bodyToArray($node->body, $node);
+            }
+        }
+        return $results;
     }
 }

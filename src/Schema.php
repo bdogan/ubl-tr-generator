@@ -14,13 +14,6 @@ abstract class Schema
 {
 
     /**
-     * Schema options
-     *
-     * @var array
-     */
-    protected $options = array();
-
-    /**
      * Schema nodes
      *
      * @var NodeCollection
@@ -50,46 +43,73 @@ abstract class Schema
 
     /**
      * Schema constructor.
-     * @param array $options
+     * @param array $body
      */
-    public function __construct($options = array())
+    public function __construct($body = array())
     {
-
-        // Set options
-        $this->options = array_replace_recursive($this->options, (array) $options);
-
         // Load namespaces
         $this->loadNamespaces();
 
         // Generate nodes
-        $this->nodes = NodeCollection::create($this->generateNodes());
+        $this->nodes = NodeCollection::create($this->generateCommonNodes());
+
+        // Generate nodes from array
+        $this->generateNodesFromArray($body);
 
     }
 
     /**
+     * Prepare given xml chain
+     *
      * @param $name
-     * @return null
+     * @param null $ns
+     * @return Node|NodeCollection|null
      */
-    public function __get($name)
+    protected function prepare($name, $ns = null)
     {
-        if (isset($this->nodes->{$name})) return $this->nodes->{$name};
-        return null;
+        $chain = is_array($name) ? $name : array(array($name, $ns));
+        $nodes = $this->nodes;
+        foreach ($chain as $hook) {
+            $id = isset($hook[2]) ? $hook[2] : $hook[0];
+            if (!$nodes->exists($id)) {
+                $nodes->add(Node::create($hook[0])->withNs($this->getNs($hook[1]))->withId($id)->withBody(NodeCollection::create()));
+            }
+            $nodes = $nodes->get($id);
+        }
+        return $nodes;
     }
 
-    /**
-     * @param $name
-     * @param $value
-     */
-    public function __set($name, $value)
+    protected function createNode($parent, $tag, $ns, $body, $id = null, $attributes = null)
     {
-        if (isset($this->nodes->{$name})) $this->nodes->{$name} = $value;
+        $node = Node::create($tag)->withNs($this->getNs($ns))->withId($id)->withBody($body);
+        if (!!$id) $node->withId($id);
+        if (!!$attributes) {
+            foreach ($attributes as $key => $value) {
+                $node->withAttr($key, $value);
+            }
+        }
+        $parent->add($node);
+    }
+
+    protected function getValue($name)
+    {
+        $chain = is_array($name) ? $name : array($name);
+        $nodes = $this->nodes;
+        foreach ($chain as $hook) {
+            if (!$nodes->exists($hook)) {
+                return null;
+            }
+            $nodes = $nodes->get($hook);
+        }
+        if ($nodes instanceof Node) return $nodes->body;
+        if ($nodes instanceof NodeCollection) return $nodes;
+        return $nodes;
     }
 
     public function toArray()
     {
         return $this->nodes->toArray();
     }
-
 
     /**
      * Returns required ns
@@ -120,11 +140,24 @@ abstract class Schema
     }
 
     /**
-     * Generate Schema nodes
+     * Generate common nodes
      *
+     * @return mixed
+     */
+    protected abstract function generateCommonNodes();
+
+    /**
+     * Generate nodes from given array
+     *
+     * @param array $body
      * @return Node[]
      */
-    protected abstract function generateNodes();
+    private function generateNodesFromArray($body)
+    {
+        foreach ($body as $key => $value) {
+            $this->{$key} = $value;
+        }
+    }
 
     /**
      * Update Schema
@@ -176,4 +209,42 @@ abstract class Schema
         return $this->tag;
     }
 
+    /**
+     * @param $name
+     * @return bool
+     */
+    public function __isset($name)
+    {
+        return isset($this->nodes->{$name});
+    }
+
+
+    /**
+     * @param $name
+     * @return null
+     */
+    public function __get($name)
+    {
+        $method = 'get' . $name;
+        if (method_exists($this, $method)) return $this->{$method}();
+        if (isset($this->nodes->{$name})) return $this->nodes->{$name};
+        return null;
+    }
+
+    /**
+     * @param $name
+     * @param $value
+     */
+    public function __set($name, $value)
+    {
+        $method = 'set' . $name;
+        switch (true) {
+            case method_exists($this, $method):
+                $this->{$method}($value);
+                break;
+            case isset($this->nodes->{$name}):
+                $this->nodes->{$name} = $value;
+                break;
+        }
+    }
 }
