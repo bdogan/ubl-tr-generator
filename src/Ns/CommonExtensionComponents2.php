@@ -12,9 +12,9 @@ class CommonExtensionComponents2 extends Ns
 {
 
     /**
-     * @inheritdoc
+     * @var string
      */
-    protected $prefix = 'ext';
+    protected $parent = Invoice2::class;
 
     /**
      * @inheritdoc

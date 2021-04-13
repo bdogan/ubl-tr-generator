@@ -6,67 +6,89 @@
 include '../vendor/autoload.php';
 include_once 'functions.php';
 
-$schema = new \UblTr\Schema\TicariFatura();
+$node = new \UblTr\Node\Invoice();
 
-$schema->Senaryo = "EARSIVFATURA";
-$schema->FaturaNo = "BT02021000000260";
-$schema->FaturaTipi = "SATIS";
-$schema->Ettn = "1112-2233-4455-6677-8899";
+$node->Senaryo = "EARSIVFATURA";
+$node->FaturaNo = "BT02021000000260";
+$node->FaturaTipi = "SATIS";
+$node->Ettn = "1112-2233-4455-6677-8899";
 
 // Fatura bilgileri
-$schema->FaturaTarihi = "2021-01-01";
-$schema->FaturaSaati = "11:12";
+$node->FaturaTarihi = "2021-01-01";
+$node->FaturaSaati = "11:12";
 
-$schema->SiparisNo = "Sipariş no";
-$schema->SiparisTarihi = "Sipariş tarihi";
+$node->SiparisNo = "Sipariş no";
+$node->SiparisTarihi = "Sipariş tarihi";
 
-$schema->IrsaliyeNo = "İrsaliye no";
-$schema->IrsaliyeTarihi = "İrsaliye tarihi";
+$node->IrsaliyeNo = "İrsaliye no";
+$node->IrsaliyeTarihi = "İrsaliye tarihi";
 
 // Gönderen bilgileri
-$schema->Website = "ww.google.com";
+$node->Website = "www.google.com";
 
-$schema->VergiNo = "vergi numarası";
-$schema->MersisNo = "Mersis numarası";
-$schema->HizmetNo = "Hizmet numarası";
-$schema->TicariSicilNo = "Ticari sicil no";
+$node->VergiNo = "vergi numarası";
+$node->MersisNo = "Mersis numarası";
+$node->HizmetNo = "Hizmet numarası";
+$node->TicariSicilNo = "Ticari sicil no";
 
-$schema->Unvan = "ABC Bilisim";
-$schema->Adres = "asdasdasd";
-$schema->BinaNo = "ddd";
-$schema->PostaKodu = "59860";
-$schema->Ilce = "Beykoz";
-$schema->Il = "İstanbul";
+$node->Unvan = "ABC Bilisim";
+$node->Adres = "asdasdasd";
+$node->BinaNo = "ddd";
+$node->PostaKodu = "59860";
+$node->Ilce = "Beykoz";
+$node->Il = "İstanbul";
 
-$schema->UlkeKodu = "TR";
-$schema->Ulke = "Türkiye";
+$node->UlkeKodu = "TR";
+$node->Ulke = "Türkiye";
 
-$schema->VergiDairesi = "vergi dairesi";
+$node->VergiDairesi = "vergi dairesi";
+
+$node->Telefon = "fffddd";
+$node->Mail = "ffasdfasdfsdf";
 
 // Alıcı bilgileri
-$schema->AliciWebsite = "AAA ww.google.com";
+$node->AliciWebsite = "AAA ww.google.com";
 
-$schema->AliciVergiNo = "AAA vergi numarası";
-$schema->AliciKimlikNo = "AAA Kimlik numarası";
-$schema->AliciMersisNo = "AAA Mersis numarası";
-$schema->AliciHizmetNo = "AAA Hizmet numarası";
-$schema->AliciTicariSicilNo = "AAA Ticari sicil no";
+$node->AliciVergiNo = "AAA vergi numarası";
+$node->AliciKimlikNo = "AAA Kimlik numarası";
+$node->AliciMersisNo = "AAA Mersis numarası";
+$node->AliciHizmetNo = "AAA Hizmet numarası";
+$node->AliciTicariSicilNo = "AAA Ticari sicil no";
 
-$schema->AliciUnvan = "AAA ABC Bilisim";
-$schema->AliciAdres = "AAA asdasdasd";
-$schema->AliciBinaNo = "AAA ddd";
-$schema->AliciPostaKodu = "AAA 59860";
-$schema->AliciIlce = "AAA Beykoz";
-$schema->AliciIl = "AAA İstanbul";
+$node->AliciUnvan = "AAA ABC Bilisim";
+$node->AliciAdres = "AAA asdasdasd";
+$node->AliciBinaNo = "AAA ddd";
+$node->AliciPostaKodu = "AAA 59860";
+$node->AliciIlce = "AAA Beykoz";
+$node->AliciIl = "AAA İstanbul";
 
-$schema->AliciUlkeKodu = "AAA TR";
-$schema->AliciUlke = "AAA Türkiye";
+$node->AliciUlkeKodu = "AAA TR";
+$node->AliciUlke = "AAA Türkiye";
 
-$schema->AliciVergiDairesi = "AAA vergi dairesi";
+$node->AliciVergiDairesi = "AAA vergi dairesi";
 
+$node->AliciTelefon = "test";
+$node->AliciMail = "ssssddd";
 
+$node->AliciAd = "Burak";
+$node->AliciSoyad = "Doğan";
 
-$generator = new \UblTr\Generator($schema);
+$node->OdemeTarihi = "Ödeme Tarihi";
+$node->OdemeNotu = "Ödeme Notu";
+
+$invoiceLine = new \UblTr\Node\InvoiceLine();
+$invoiceLine->SiraNo = 1;
+$invoiceLine->Miktar = 20;
+
+$invoiceLine2 = new \UblTr\Node\InvoiceLine();
+$invoiceLine2->SiraNo = 2;
+$invoiceLine2->Miktar = 30;
+
+$node->Urunler = array($invoiceLine, $invoiceLine2);
+
+pr($node->Urunler);
+
+$generator = new \UblTr\Generator($node);
 
 header('Content-Type: text/xml');
 echo $generator->generate()->asXML();

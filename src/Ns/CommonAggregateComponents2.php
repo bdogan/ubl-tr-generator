@@ -12,9 +12,9 @@ class CommonAggregateComponents2 extends Ns
 {
 
     /**
-     * @inheritdoc
+     * @var string
      */
-    protected $prefix = 'cac';
+    protected $parent = Invoice2::class;
 
     /**
      * @inheritdoc

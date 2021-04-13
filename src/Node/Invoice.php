@@ -1,14 +1,14 @@
 <?php
 
-namespace UblTr\Schema;
+namespace UblTr\Node;
 
 use UblTr\Node;
 use UblTr\NodeCollection;
-use UblTr\Schema;
+use UblTr\NsLoader;
 
 /**
- * Class Fatura
- * @package UblTr\Schema
+ * Class Invoice
+ * @package UblTr\Node
  *
  * @property string $UBLVersionID
  * @property string $CustomizationID
@@ -38,6 +38,8 @@ use UblTr\Schema;
  * @property string $Ulke
  * @property string $UlkeKodu
  * @property string $VergiDairesi
+ * @property string $Telefon
+ * @property string $Mail
  * @property string $AliciWebsite
  * @property string $AliciVergiNo
  * @property string $AliciKimlikNo
@@ -45,6 +47,8 @@ use UblTr\Schema;
  * @property string $AliciHizmetNo
  * @property string $AliciTicariSicilNo
  * @property string $AliciUnvan
+ * @property string $AliciAd
+ * @property string $AliciSoyad
  * @property string $AliciAdres
  * @property string $AliciBinaNo
  * @property string $AliciPostaKodu
@@ -53,54 +57,38 @@ use UblTr\Schema;
  * @property string $AliciUlke
  * @property string $AliciUlkeKodu
  * @property string $AliciVergiDairesi
+ * @property string $AliciTelefon
+ * @property string $AliciMail
+ * @property string $OdemeTarihi
+ * @property string $OdemeNotu
+ * @property InvoiceLine[] $Urunler
  */
-class Fatura extends Schema
+class Invoice extends Node
 {
 
-    /**
-     * @var string tag
-     */
-    protected $tag = 'Invoice';
-
-
-    /**
-     * @return array
-     */
-    protected function generateCommonNodes()
+    protected function boot()
     {
-        $cbc = $this->getNs('cbc');
+        $cbc = NsLoader::load('cbc');
 
-        return array(
-            Node::create('UBLVersionID')->withNs($cbc)->withBody('2.1')->withId('UBLVersionID'),
-            Node::create('CustomizationID')->withNs($cbc)->withBody('TR1.2')->withId('CustomizationID'),
-            Node::create('ProfileID')->withNs($cbc)->withRequired(true)->withId('Senaryo'),
-            Node::create('ID')->withNs($cbc)->withId('FaturaNo'),
-            Node::create('CopyIndicator')->withNs($cbc)->withBody(false)->withId('CopyIndicator'),
-            Node::create('UUID')->withNs($cbc)->withId('Ettn'),
-            Node::create('IssueDate')->withNs($cbc)->withId('FaturaTarihi'),
-            Node::create('IssueTime')->withNs($cbc)->withId('FaturaSaati'),
-            Node::create('InvoiceTypeCode')->withNs($cbc)->withRequired(true)->withBody('SATIS')->withId('FaturaTipi'),
-            Node::create('DocumentCurrencyCode')->withNs($cbc)->withBody('TRY')->withId('ParaBirimi'),
-            Node::create('LineCountNumeric')->withNs($cbc)->withBody([ $this, 'lineCountNumeric' ])
+        $this->content = array(
+            'tag' => 'Invoice',
+            'body' => NodeCollection::create(array(
+                Node::create('UBLVersionID')->withNs($cbc)->withBody('2.1')->withId('UBLVersionID'),
+                Node::create('CustomizationID')->withNs($cbc)->withBody('TR1.2')->withId('CustomizationID'),
+                Node::create('ProfileID')->withNs($cbc)->withRequired(true)->withId('Senaryo'),
+                Node::create('ID')->withNs($cbc)->withId('FaturaNo'),
+                Node::create('CopyIndicator')->withNs($cbc)->withBody(false)->withId('CopyIndicator'),
+                Node::create('UUID')->withNs($cbc)->withId('Ettn'),
+                Node::create('IssueDate')->withNs($cbc)->withId('FaturaTarihi'),
+                Node::create('IssueTime')->withNs($cbc)->withId('FaturaSaati'),
+                Node::create('InvoiceTypeCode')->withNs($cbc)->withRequired(true)->withBody('SATIS')->withId('FaturaTipi'),
+                Node::create('DocumentCurrencyCode')->withNs($cbc)->withBody('TRY')->withId('ParaBirimi'),
+                Node::create('LineCountNumeric')->withNs($cbc)->withBody([ $this, 'lineCountNumeric' ]),
+                Node::create('InvoiceLine')->withNs($cbc)->withBody([ $this, 'lineCountNumeric' ])
+            ))
         );
     }
 
-    /**
-     * @param $note
-     * @param $id
-     * @return $this
-     */
-    public function addNote($note, $id = null)
-    {
-        $this->nodes->add(Node::create('Note')->withNs($this->getNs('cbc'))->withBody($note)->withId($id));
-        return $this;
-    }
-
-    /**
-     * Line counter
-     *
-     * @return int
-     */
     public function lineCountNumeric()
     {
         return 0;
@@ -111,53 +99,53 @@ class Fatura extends Schema
     // -- Sipariş No
     protected function getSiparisNo()
     {
-        $node = $this->nodes->get('OrderReference');
-        return $node ? $node->get('No') : null;
+        return $this->getValue(array('OrderReference', 'No'));
     }
 
     protected function setSiparisNo($value)
     {
-        $node = Node::create('ID')->withNs($this->getNs('cbc'))->withId('No')->withBody($value);
-        $this->prepare('OrderReference', 'cac')->add($node);
+        $this->createNode($this->prepare(array(
+            array('OrderReference', 'cac')
+        )), 'ID', 'cbc', $value, 'No');
     }
 
     // -- Sipariş Tarihi
     protected function getSiparisTarihi()
     {
-        $node = $this->nodes->get('OrderReference');
-        return $node ? $node->get('Tarih') : null;
+        return $this->getValue(array('OrderReference', 'Tarih'));
     }
 
     protected function setSiparisTarihi($value)
     {
-        $node = Node::create('IssueDate')->withNs($this->getNs('cbc'))->withId('Tarih')->withBody($value);
-        $this->prepare('OrderReference', 'cac')->add($node);
+        $this->createNode($this->prepare(array(
+            array('OrderReference', 'cac')
+        )), 'IssueDate', 'cbc', $value, 'Tarih');
     }
 
     // -- İrsaliye No
     protected function getIrsaliyeNo()
     {
-        $node = $this->nodes->get('DespatchDocumentReference');
-        return $node ? $node->get('No') : null;
+        return $this->getValue(array('DespatchDocumentReference', 'No'));
     }
 
     protected function setIrsaliyeNo($value)
     {
-        $node = Node::create('ID')->withNs($this->getNs('cbc'))->withId('No')->withBody($value);
-        $this->prepare('DespatchDocumentReference', 'cac')->add($node);
+        $this->createNode($this->prepare(array(
+            array('DespatchDocumentReference', 'cac')
+        )), 'ID', 'cbc', $value, 'No');
     }
 
     // -- İrsaliye Tarihi
     protected function getIrsaliyeTarihi()
     {
-        $node = $this->nodes->get('DespatchDocumentReference');
-        return $node ? $node->get('Tarih') : null;
+        return $this->getValue(array('DespatchDocumentReference', 'Tarih'));
     }
 
     protected function setIrsaliyeTarihi($value)
     {
-        $node = Node::create('IssueDate')->withNs($this->getNs('cbc'))->withId('Tarih')->withBody($value);
-        $this->prepare('DespatchDocumentReference', 'cac')->add($node);
+        $this->createNode($this->prepare(array(
+            array('DespatchDocumentReference', 'cac')
+        )), 'IssueDate', 'cbc', $value, 'Tarih');
     }
 
     // -- Vergi no
@@ -356,6 +344,36 @@ class Fatura extends Schema
         return $this->getValue(array('AccountingSupplierParty', 0, 'PartyTaxScheme', 'TaxScheme', 'Name'));
     }
 
+    // -- Telefon
+    protected function setTelefon($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('AccountingSupplierParty', 'cac'),
+            array('Party', 'cac', 0),
+            array('Contact', 'cac'),
+        )), 'Telephone', 'cbc', $value, 'Telephone');
+    }
+
+    protected function getTelefon()
+    {
+        return $this->getValue(array('AccountingSupplierParty', 0, 'Contact', 'Telephone'));
+    }
+
+    // -- Mail
+    protected function setMail($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('AccountingSupplierParty', 'cac'),
+            array('Party', 'cac', 0),
+            array('Contact', 'cac'),
+        )), 'ElectronicMail', 'cbc', $value, 'ElectronicMail');
+    }
+
+    protected function getMail()
+    {
+        return $this->getValue(array('AccountingSupplierParty', 0, 'Contact', 'ElectronicMail'));
+    }
+
     // -- Alıcı Vergi no
     protected function setAliciVergiNo($value)
     {
@@ -424,6 +442,36 @@ class Fatura extends Schema
     protected function getAliciUnvan()
     {
         return $this->getValue(array('AccountingCustomerParty', 0, 'Unvan', 'Name'));
+    }
+
+    // -- AlıcıAd
+    protected function setAliciAd($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('AccountingCustomerParty', 'cac'),
+            array('Party', 'cac', 0),
+            array('Person', 'cac'),
+        )), 'FirstName', 'cbc', $value, 'FirstName');
+    }
+
+    protected function getAliciAd()
+    {
+        return $this->getValue(array('AccountingCustomerParty', 0, 'Person', 'FirstName'));
+    }
+
+    // -- AlıcıSoyad
+    protected function setAliciSoyad($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('AccountingCustomerParty', 'cac'),
+            array('Party', 'cac', 0),
+            array('Person', 'cac'),
+        )), 'FamilyName', 'cbc', $value, 'FamilyName');
+    }
+
+    protected function getAliciSoyad()
+    {
+        return $this->getValue(array('AccountingCustomerParty', 0, 'Person', 'FamilyName'));
     }
 
     // -- AlıcıAdres
@@ -563,6 +611,74 @@ class Fatura extends Schema
         return $this->getValue(array('AccountingCustomerParty', 0, 'PartyTaxScheme', 'TaxScheme', 'Name'));
     }
 
+    // -- AlıcıTelefon
+    protected function setAliciTelefon($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('AccountingCustomerParty', 'cac'),
+            array('Party', 'cac', 0),
+            array('Contact', 'cac'),
+        )), 'Telephone', 'cbc', $value, 'Telephone');
+    }
+
+    protected function getAliciTelefon()
+    {
+        return $this->getValue(array('AccountingCustomerParty', 0, 'Contact', 'Telephone'));
+    }
+
+    // -- AlıcıMail
+    protected function setAliciMail($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('AccountingCustomerParty', 'cac'),
+            array('Party', 'cac', 0),
+            array('Contact', 'cac'),
+        )), 'ElectronicMail', 'cbc', $value, 'ElectronicMail');
+    }
+
+    protected function getAliciMail()
+    {
+        return $this->getValue(array('AccountingCustomerParty', 0, 'Contact', 'ElectronicMail'));
+    }
+
+    // -- Ödeme Tarihi
+    protected function setOdemeTarihi($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('PaymentTerms', 'cac'),
+        )), 'PaymentDueDate', 'cbc', $value, 'OdemeTarihi');
+    }
+
+    protected function getOdemeTarihi()
+    {
+        return $this->getValue(array('PaymentTerms', 'OdemeTarihi'));
+    }
+
+    // -- Ödeme Notu
+    protected function setOdemeNotu($value)
+    {
+        $this->createNode($this->prepare(array(
+            array('PaymentTerms', 'cac'),
+        )), 'Note', 'cbc', $value, 'Note');
+    }
+
+    protected function getOdemeNotu()
+    {
+        return $this->getValue(array('PaymentTerms', 'Note'));
+    }
+
+    // -- Ürünler
+    protected function setUrunler($value)
+    {
+        foreach ($value as $line) {
+            $this->add($line);
+        }
+    }
+
+    protected function getUrunler()
+    {
+        return $this->getValue(array('Urunler'))->toArray();
+    }
 
 
     // -- Helper functions --------
@@ -574,5 +690,4 @@ class Fatura extends Schema
             array('PartyIdentification', 'cac', $schemaId),
         )), 'ID', 'cbc', $value, 'Id', array( 'schemaID' => $schemaId ));
     }
-
 }

@@ -2,6 +2,8 @@
 
 namespace UblTr;
 
+use UblTr\Exception\NsException;
+
 class Ns
 {
 
@@ -20,25 +22,25 @@ class Ns
 
     /**
      * Schema location
-     * @var string
+     * @var string|null
      */
     protected $schemaLocation = null;
 
     /**
      * Parent namespace
-     * @var Ns
+     * @var Ns|null
      */
     protected $parent = null;
 
     /**
      * Ns constructor.
-     * @param null $parent
+     *
+     * @param string $prefix
      */
-    public function __construct($parent = null)
+    public function __construct($prefix)
     {
-        $this->parent = $parent;
+        $this->prefix = $prefix;
     }
-
 
     /**
      * @return string
@@ -70,6 +72,16 @@ class Ns
     public function getParent()
     {
         return $this->parent;
+    }
+
+    /**
+     * @param $parent
+     * @throws NsException
+     */
+    public function setParent($parent)
+    {
+        if (!($parent instanceof Ns)) throw new NsException("$parent is not an instance of UblTR\NS");
+        $this->parent = $parent;
     }
 
 }

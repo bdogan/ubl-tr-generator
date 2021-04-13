@@ -3,51 +3,35 @@
 namespace UblTr;
 
 use SimpleXMLElement;
-use UblTr\Ns\CommonBasicComponents2;
-use UblTr\Ns\Invoice2;
-use UblTr\Ns\XMLSchemaInstance;
+use UblTr\Exception\GeneratorException;
 
 class Generator
 {
 
     /**
-     * Generator schema
+     * Generator node
      *
-     * @var Schema
+     * @var Node
      */
-    protected $schema;
-
-    /**
-     * Generator options
-     *
-     * @var array
-     */
-    protected $options = array();
+    protected $node;
 
     /**
      * Generator constructor.
-     * @param Schema|string $schema
-     * @param array $options
+     * @param Node|string $node
      * @throws GeneratorException
      */
-    public function __construct($schema, $options = array())
+    public function __construct($node)
     {
         // Check class
-        if (is_string($schema) && !class_exists($schema)) {
-            throw new GeneratorException("$schema not found");
+        if (is_string($node) && !class_exists($node)) {
+            throw new GeneratorException("$node not found");
         }
 
-        // Merge options
-        $this->options = array_replace_recursive($this->options, (array) $options);
-
-        // Create schema
-        $this->schema = is_string($schema) ? new $schema($options['schema']) : $schema;
-        if (!($this->schema instanceof Schema)) {
-            throw new GeneratorException(get_class($schema) . " is not instance of UblTR\\Schema");
+        // Create node
+        $this->node = is_string($node) ? new $node() : $node;
+        if (!($this->node instanceof Node)) {
+            throw new GeneratorException(get_class($node) . " is not instance of UblTR\\Node");
         }
-
-        // Unset schema options
-        unset($this->options['schema']);
 
     }
 
@@ -57,10 +41,10 @@ class Generator
     public function generate()
     {
         // Get root node
-        $rootTag = $this->schema->getTag();
+        $rootTag = $this->node->tag;
 
-        // Prepare required ns
-        $requiredNs = $this->schema->getRequireNs();
+        // Root ns resolving
+        $requiredNs = NsLoader::loaded();
         $nsAttributes = array();
         foreach ($requiredNs as $ns) {
             if (!!$ns->getParent() && !isset($nsAttributes[$ns->getParent()->getPrefix()])) {
@@ -77,11 +61,17 @@ class Generator
         $xml = new SimpleXMLElement(sprintf("<%s %s></%s>", $rootTag, implode(' ', $rootAttributes), $rootTag));
 
         // Add nodes to xml
-        $nodes = $this->schema->getNodes();
-        foreach ($nodes as $tag => $node) {
+        $nodes = $this->node->body;
+
+        // Node -> NodeCollection
+        if ($nodes instanceof Node) $nodes = NodeCollection::create(array($node));
+
+        // Render nodes
+        foreach ($nodes as $node) {
             $this->renderNode($node, $xml);
         }
 
+        // Return xml
         return $xml;
     }
 
@@ -91,40 +81,47 @@ class Generator
      */
     private function renderNode(&$node, &$xml)
     {
-        $body = $node->body;
         $childXml = null;
+        $body = $node->body;
+        $nsUrl = $node->ns ? $node->ns->getUri() : null;
         switch (true) {
 
             // Node Collection
             case $body instanceof NodeCollection:
-                $childXml = $xml->addChild($node->tag, null, $node->ns->getUri());
+                $childXml = $xml->addChild($node->tag, null, $nsUrl);
                 foreach ($body as $tag => $innerNode) {
                     $this->renderNode($innerNode, $childXml);
                 }
                 break;
 
             // Callable
-            case is_callable($body):
-                $body = call_user_func($body, $node);
-                $childXml = $xml->addChild($node->tag, $body, $node->ns->getUri());
-                break;
-
-            // Plain text array
-            case is_array($body):
-                $childXml = array();
-                foreach ($body as $_body) {
-                    $childXml[] = $xml->addChild($node->tag, $_body, $node->ns->getUri());
-                }
+            case (is_array($body) && count($body) === 2 && $body[0] instanceof Node && is_string($body[1])):
+                $node->body = call_user_func($body, $node);
+                $this->renderNode($node, $xml);
                 break;
 
             // Boolean
             case is_bool($body):
-                $childXml = $xml->addChild($node->tag, $body === true ? 'true' : 'false', $node->ns->getUri());
+                $childXml = $xml->addChild($node->tag, ($body === true ? 'true' : 'false'), $nsUrl);
+                break;
+
+            // Node
+            case ($body instanceof Node):
+                $this->renderNode($body, $xml);
+                break;
+
+            // Boolean
+            case is_array($body):
+                $childXml = array();
+                foreach ($body as $_node) {
+                    if (!($_node instanceof Node)) throw new GeneratorException('Only nodes allow to be render');
+                    $childXml[] = $xml->addChild($_node->tag, ($body === true ? 'true' : 'false'), $nsUrl);
+                }
                 break;
 
             // ?string
             case is_string($body) || is_numeric($body) || is_null($body):
-                $childXml = $xml->addChild($node->tag, $body, $node->ns->getUri());
+                $childXml = $xml->addChild($node->tag, $body, $nsUrl);
         }
 
         // Add node attributes

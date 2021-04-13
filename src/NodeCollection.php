@@ -5,6 +5,8 @@ namespace UblTr;
 class NodeCollection implements \Iterator
 {
 
+    public $id;
+
     /**
      * Node Collection
      *
@@ -18,6 +20,7 @@ class NodeCollection implements \Iterator
      */
     public function __construct($nodes = array())
     {
+        if (!is_array($nodes)) return;
         foreach ($nodes as $node) {
             $this->add($node);
         }

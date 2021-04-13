@@ -9,7 +9,7 @@ namespace UblTr;
  * @property string $id
  * @property Ns $ns
  * @property string $tag
- * @property mixed|Node[] $body
+ * @property string|Node|Node[]|NodeCollection $body
  * @property boolean $require
  * @property array $attributes
  */
@@ -17,11 +17,18 @@ class Node
 {
 
     /**
-     * Node content
+     * Node Content
+     *
+     * @var array
+     */
+    protected $content = array();
+
+    /**
+     * Default Node content
      *
      * @var array|null
      */
-    protected $content = array(
+    private $default_content = array(
         'id' => null,
         'ns' => null,
         'tag' => null,
@@ -38,34 +45,69 @@ class Node
      */
     public function __construct($content = array())
     {
-        $this->content = array_replace_recursive($this->content, (array) $content);
+        $this->boot();
+        $this->content = array_replace_recursive($this->default_content, $this->content, (array) $content);
     }
 
     /**
-     * Getter
-     *
-     * @param $name
-     * @return mixed
+     * Boot
      */
-    public function __get($name)
-    {
-        return $this->get($name);
-    }
+    protected function boot() { }
 
     /**
-     * Setter
+     * Prepare given xml chain
      *
      * @param $name
-     * @param $value
+     * @param null $ns
+     * @return Node|NodeCollection|null
      */
-    public function __set($name, $value)
+    protected function prepare($name, $ns = null)
     {
-        switch (true) {
-            case (array_key_exists($name, $this->content)): return $this->content[$name] = $value;
-            case $this->body instanceof NodeCollection && $this->body->exists($name): return $this->body->{$name} = $value;
+        $chain = is_array($name) ? $name : array(array($name, $ns));
+        if (! $this->body instanceof NodeCollection) $this->body = NodeCollection::create(array());
+        $nodes = $this->body;
+        foreach ($chain as $hook) {
+            $id = isset($hook[2]) ? $hook[2] : $hook[0];
+            if (!$nodes->exists($id)) {
+                $nodes->add(Node::create($hook[0])->withNs(NsLoader::load($hook[1]))->withId($id)->withBody(NodeCollection::create()));
+            }
+            $nodes = $nodes->get($id);
         }
+        return $nodes;
     }
 
+    protected function createNode($parent, $tag, $ns, $body, $id = null, $attributes = null)
+    {
+        $node = Node::create($tag)->withNs(NsLoader::load($ns))->withId($id)->withBody($body);
+        if (!!$id) $node->withId($id);
+        if (!!$attributes) {
+            foreach ($attributes as $key => $value) {
+                $node->withAttr($key, $value);
+            }
+        }
+        $parent->add($node);
+    }
+
+    protected function getValue($name)
+    {
+        $chain = is_array($name) ? $name : array($name);
+        $nodes = $this->body;
+        if (! $nodes instanceof NodeCollection) return $nodes;
+        foreach ($chain as $hook) {
+            if (!$nodes->exists($hook)) {
+                return null;
+            }
+            $nodes = $nodes->get($hook);
+        }
+        if ($nodes instanceof Node) return $nodes->body;
+        if ($nodes instanceof NodeCollection) return $nodes;
+        return $nodes;
+    }
+
+    /**
+     * @param $name
+     * @return mixed|string|Node|Node[]|NodeCollection|null
+     */
     public function get($name) {
         switch (true) {
             case (array_key_exists($name, $this->content)): return $this->content[$name];
@@ -74,12 +116,19 @@ class Node
         }
     }
 
+    /**
+     * @param $node
+     */
     public function add($node)
     {
         if (!$this->body instanceof NodeCollection) $this->content['body'] = NodeCollection::create();
         $this->content['body']->add($node);
     }
 
+    /**
+     * @param $name
+     * @return bool
+     */
     public function exists($name)
     {
         switch (true) {
@@ -104,6 +153,38 @@ class Node
     public function __unset($name)
     {
         unset($this->content[$name]);
+    }
+
+
+    /**
+     * Getter
+     *
+     * @param $name
+     * @return mixed
+     */
+    public function __get($name)
+    {
+        $method = 'get' . $name;
+        if (method_exists($this, $method)) return $this->{$method}();
+        return $this->get($name);
+    }
+
+    /**
+     * Setter
+     *
+     * @param $name
+     * @param $value
+     */
+    public function __set($name, $value)
+    {
+        $method = 'set' . $name;
+        if (method_exists($this, $method)) {
+            $this->{$method}($value);
+        }
+        switch (true) {
+            case (array_key_exists($name, $this->content)): return $this->content[$name] = $value;
+            case $this->body instanceof NodeCollection && $this->body->exists($name): return $this->body->{$name} = $value;
+        }
     }
 
     /**
@@ -154,21 +235,6 @@ class Node
     public function withBody($body)
     {
         $this->content['body'] = $body;
-        return $this;
-    }
-
-    /**
-     * Append body
-     *
-     * @param $body
-     * @return $this
-     */
-    public function appendBody($body)
-    {
-        if (!is_array($this->body)) {
-            $this->content['body'] = $this->body ? array($this->body) : array();
-        }
-        $this->content['body'][] = $body;
         return $this;
     }
 

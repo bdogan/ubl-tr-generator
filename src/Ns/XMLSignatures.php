@@ -12,9 +12,9 @@ class XMLSignatures extends Ns
 {
 
     /**
-     * @inheritdoc
+     * @var string
      */
-    protected $prefix = 'ds';
+    protected $parent = Invoice2::class;
 
     /**
      * @inheritdoc

@@ -12,9 +12,9 @@ class XMLSchemaInstance extends Ns
 {
 
     /**
-     * @inheritdoc
+     * @var string
      */
-    protected $prefix = 'xsi';
+    protected $parent = Invoice2::class;
 
     /**
      * @inheritdoc

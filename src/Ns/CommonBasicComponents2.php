@@ -10,10 +10,11 @@ use UblTr\Ns;
  */
 class CommonBasicComponents2 extends Ns
 {
+
     /**
-     * @inheritdoc
+     * @var string
      */
-    protected $prefix = 'cbc';
+    protected $parent = Invoice2::class;
 
     /**
      * @inheritdoc

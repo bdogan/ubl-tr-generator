@@ -12,9 +12,9 @@ class Xades extends Ns
 {
 
     /**
-     * @inheritdoc
+     * @var string
      */
-    protected $prefix = 'xades';
+    protected $parent = Invoice2::class;
 
     /**
      * @inheritdoc
